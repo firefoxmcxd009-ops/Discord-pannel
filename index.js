@@ -29,6 +29,7 @@ const SERVER = "foxmckingdom.mcpc.ink";
 // ================= GET SERVER STATUS
 async function getStatus() {
   try {
+    // ប្រើ API របស់ mcsrvstat.us
     const response = await axios.get(`https://api.mcsrvstat.us/2/${SERVER}`);
     return response.data;
   } catch (err) {
@@ -37,10 +38,11 @@ async function getStatus() {
   }
 }
 
-// ================= PLAYER HEAD
+// ================= 3D PLAYER HEAD (SUPPORT JAVA & BEDROCK)
 function getHead(name) {
-  // ប្រើ Crafthead ដើម្បីឱ្យ Support ទាំង Java & Bedrock
-  return `https://crafthead.net/helm/${name}/128`;
+  // Crafthead ឆ្លាតវៃក្នុងការស្វែងរក UUID ឬ ឈ្មោះ (រួមទាំងឈ្មោះ Bedrock ដែលមានសញ្ញា .)
+  // បន្ថយទំហំមកត្រឹម 64px (តូចជាងមុន)
+  return `https://crafthead.net/helm/${name}/64`;
 }
 
 // ================= BOT READY
@@ -53,17 +55,17 @@ client.on("messageCreate", async (msg) => {
   if (msg.author.bot) return;
 
   if (msg.content === "!panel") {
-    // បង្ហាញថា Bot កំពុងគិត (Typing status)
     await msg.channel.sendTyping();
 
     const data = await getStatus();
 
-    // ❌ Server Offline ឬ Error
+    // ❌ Server Offline
     if (!data || !data.online) {
       const offlineEmbed = new EmbedBuilder()
         .setTitle("sᴇʀᴠᴇʀ ɪs ᴏғғʟɪɴᴇ!")
         .setDescription("sᴇʀᴠᴇʀ ɪs ᴄᴜʀʀᴇɴᴛʟʏ ᴏғғʟɪɴᴇ ᴏʀ ᴜɴʀᴇᴀᴄʜᴀʙʟᴇ.")
-        .setColor("Red");
+        .setColor("Red")
+        .setTimestamp();
 
       return msg.channel.send({ embeds: [offlineEmbed] });
     }
@@ -84,7 +86,8 @@ client.on("messageCreate", async (msg) => {
         { name: "❀ ɪᴘ", value: `\`${SERVER}\``, inline: false },
         { name: "⊟ ᴘᴏʀᴛ", value: `\`${data.port || "25565"}\``, inline: true }
       )
-      .setThumbnail(players.length > 0 ? getHead(players[0]) : "https://mc-heads.net/avatar/Steve")
+      // ប្រសិនបើគ្មានអ្នកលេង វានឹងបង្ហាញក្បាល Steve ជា Default
+      .setThumbnail(players.length > 0 ? getHead(players[0]) : "https://crafthead.net/helm/Steve/64")
       .setColor("#5865F2")
       .setFooter({ text: "ʀᴇǫᴜᴇsᴛᴇᴅ ᴘᴀɴᴇʟ • ғᴏxᴍᴄᴋɪɴɢᴅᴏᴍ ʙᴏᴛ" })
       .setTimestamp();
