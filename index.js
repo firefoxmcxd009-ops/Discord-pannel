@@ -77,7 +77,7 @@ client.on("messageCreate", async (msg) => {
     // 🎮 EMBED
     const embed = new EmbedBuilder()
       .setTitle("ғᴏxᴍᴄᴋɪɴɢᴅᴏᴍ ʟɪᴠᴇ ᴘᴀɴᴇʟ")
-      .setDescription("**ʟɪᴠᴇ ᴘʟាយer ʟɪsᴛ:**\n" + (list.length > 1000 ? list.substring(0, 1000) + "..." : list))
+      .setDescription("**ʟɪᴠᴇ ᴘʟᴀʏer ʟɪsᴛ:**\n" + (list.length > 1000 ? list.substring(0, 1000) + "..." : list))
       .addFields(
         { name: "♙ ᴏɴʟɪɴᴇ", value: `\`${data.players.online}/${data.players.max}\``, inline: true },
         { name: "⌘ ᴠᴇʀsɪᴏɴ", value: `\`${data.version || "Unknown"}\``, inline: true },
