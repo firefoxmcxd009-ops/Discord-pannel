@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 const axios = require("axios");
 const express = require("express");
 
-// ================= EXPRESS (RENDER REQUIRED)
+// ================= EXPRESS (KEEP-ALIVE FOR RENDER)
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -29,16 +29,18 @@ const SERVER = "foxmckingdom.mcpc.ink";
 // ================= GET SERVER STATUS
 async function getStatus() {
   try {
-    const res = await axios.get(`https://api.mcsrvstat.us/2/${SERVER}`);
-    return res.data;
+    const response = await axios.get(`https://api.mcsrvstat.us/2/${SERVER}`);
+    return response.data;
   } catch (err) {
+    console.error("API Error:", err.message);
     return null;
   }
 }
 
 // ================= PLAYER HEAD
 function getHead(name) {
-  return `https://mc-heads.net/avatar/${name}/64`;
+  // ប្រើ Crafthead ដើម្បីឱ្យ Support ទាំង Java & Bedrock
+  return `https://crafthead.net/helm/${name}/128`;
 }
 
 // ================= BOT READY
@@ -51,43 +53,44 @@ client.on("messageCreate", async (msg) => {
   if (msg.author.bot) return;
 
   if (msg.content === "!panel") {
-    const channel = msg.channel;
+    // បង្ហាញថា Bot កំពុងគិត (Typing status)
+    await msg.channel.sendTyping();
 
     const data = await getStatus();
 
-    // ❌ Server Offline
+    // ❌ Server Offline ឬ Error
     if (!data || !data.online) {
       const offlineEmbed = new EmbedBuilder()
         .setTitle("sᴇʀᴠᴇʀ ɪs ᴏғғʟɪɴᴇ!")
-        .setDescription("sᴇʀᴠᴇʀ ɪs ᴄᴜʀʀᴇɴᴛʟʏ ᴏғғʟɪɴᴇ")
+        .setDescription("sᴇʀᴠᴇʀ ɪs ᴄᴜʀʀᴇɴᴛʟʏ ᴏғғʟɪɴᴇ ᴏʀ ᴜɴʀᴇᴀᴄʜᴀʙʟᴇ.")
         .setColor("Red");
 
-      return channel.send({ embeds: [offlineEmbed] });
+      return msg.channel.send({ embeds: [offlineEmbed] });
     }
 
-    // 👥 Players
+    // 👥 Players Logic
     const players = data.players?.list || [];
-
     const list = players.length
-      ? players.map(p => `★ ${p.name}`).join("\n")
+      ? players.map(p => `★ ${p}`).join("\n")
       : "ɴᴏ ᴘʟᴀʏᴇʀs ᴏɴʟɪɴᴇ";
 
     // 🎮 EMBED
     const embed = new EmbedBuilder()
       .setTitle("ғᴏxᴍᴄᴋɪɴɢᴅᴏᴍ ʟɪᴠᴇ ᴘᴀɴᴇʟ")
-      .setDescription("**ʟɪᴠᴇ ᴘʟᴀʏᴇʀ ʟɪsᴛ:**\n" + list)
+      .setDescription("**ʟɪᴠᴇ ᴘʟាយer ʟɪsᴛ:**\n" + (list.length > 1000 ? list.substring(0, 1000) + "..." : list))
       .addFields(
-        { name: "♙ ᴏɴʟɪɴᴇ", value: `${data.players.online}/${data.players.max}`, inline: true },
-        { name: "⊟ ᴘᴏʀᴛ", value: data.hostname || "Unknow", inline: false},
-        { name: "❀ ɪᴘ", value: data.port || "Unknow", inline: false },
-        { name: "⌘ ᴠᴇʀsɪᴏɴ", value: data.version || "Unknown", inline: true }
+        { name: "♙ ᴏɴʟɪɴᴇ", value: `\`${data.players.online}/${data.players.max}\``, inline: true },
+        { name: "⌘ ᴠᴇʀsɪᴏɴ", value: `\`${data.version || "Unknown"}\``, inline: true },
+        { name: "❀ ɪᴘ", value: `\`${SERVER}\``, inline: false },
+        { name: "⊟ ᴘᴏʀᴛ", value: `\`${data.port || "25565"}\``, inline: true }
       )
-      .setThumbnail(players[0] ? getHead(players[0].name) : null)
-      .setColor("Blue")
-      .setFooter({ text: "ʀᴇǫᴜᴇsᴛeᴅ ᴘᴀɴᴇʟ • ғᴏxᴍᴄᴋɪɴɢᴅᴏᴍ ʙᴏᴛ" });
+      .setThumbnail(players.length > 0 ? getHead(players[0]) : "https://mc-heads.net/avatar/Steve")
+      .setColor("#5865F2")
+      .setFooter({ text: "ʀᴇǫᴜᴇsᴛᴇᴅ ᴘᴀɴᴇʟ • ғᴏxᴍᴄᴋɪɴɢᴅᴏᴍ ʙᴏᴛ" })
+      .setTimestamp();
 
-    // 🔥 ALWAYS SEND NEW MESSAGE
-    channel.send({ embeds: [embed] });
+    // 🔥 SEND MESSAGE
+    msg.channel.send({ embeds: [embed] });
   }
 });
 
