@@ -58,8 +58,8 @@ client.on("messageCreate", async (msg) => {
     // ❌ Server Offline
     if (!data || !data.online) {
       const offlineEmbed = new EmbedBuilder()
-        .setTitle("🔴 Server Offline")
-        .setDescription("Server is currently offline")
+        .setTitle("sᴇʀᴠᴇʀ ɪs ᴏғғʟɪɴᴇ!")
+        .setDescription("sᴇʀᴠᴇʀ ɪs ᴄᴜʀʀᴇɴᴛʟʏ ᴏғғʟɪɴᴇ")
         .setColor("Red");
 
       return channel.send({ embeds: [offlineEmbed] });
@@ -69,21 +69,20 @@ client.on("messageCreate", async (msg) => {
     const players = data.players?.list || [];
 
     const list = players.length
-      ? players.map(p => `🎮 ${p.name}`).join("\n")
-      : "No players online";
+      ? players.map(p => `★ ${p.name}`).join("\n")
+      : "ɴᴏ ᴘʟᴀʏᴇʀs ᴏɴʟɪɴᴇ";
 
     // 🎮 EMBED
     const embed = new EmbedBuilder()
-      .setTitle("🎮 Minecraft Live Server Panel")
-      .setDescription("**Live Player List:**\n" + list)
+      .setTitle("ғᴏxᴍᴄᴋɪɴɢᴅᴏᴍ ʟɪᴠᴇ ᴘᴀɴᴇʟ")
+      .setDescription("**ʟɪᴠᴇ ᴘʟᴀʏᴇʀ ʟɪsᴛ:**\n" + list)
       .addFields(
-        { name: "👥 Online", value: `${data.players.online}`, inline: true },
-        { name: "📊 Max", value: `${data.players.max}`, inline: true },
-        { name: "⚙️ Version", value: data.version || "Unknown", inline: true }
+        { name: "♙ ᴏɴʟɪɴᴇ", value: `${data.players.online}/${data.players.max}`, inline: true },
+        { name: "⌘ ᴠᴇʀsɪᴏɴ", value: data.version || "Unknown", inline: true }
       )
       .setThumbnail(players[0] ? getHead(players[0].name) : null)
-      .setColor("Green")
-      .setFooter({ text: "Requested Panel • Render Hosted Bot" });
+      .setColor("Blue")
+      .setFooter({ text: "ʀᴇǫᴜᴇsᴛeᴅ ᴘᴀɴᴇʟ • ғᴏxᴍᴄᴋɪɴɢᴅᴏᴍ ʙᴏᴛ" });
 
     // 🔥 ALWAYS SEND NEW MESSAGE
     channel.send({ embeds: [embed] });
