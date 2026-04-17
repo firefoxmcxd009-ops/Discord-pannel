@@ -78,6 +78,8 @@ client.on("messageCreate", async (msg) => {
       .setDescription("**ʟɪᴠᴇ ᴘʟᴀʏᴇʀ ʟɪsᴛ:**\n" + list)
       .addFields(
         { name: "♙ ᴏɴʟɪɴᴇ", value: `${data.players.online}/${data.players.max}`, inline: true },
+        { name: "⊟ ᴘᴏʀᴛ", value: data.hostname || "Unknow", inline: false},
+        { name: "❀ ɪᴘ", value: data.port || "Unknow", inline: false },
         { name: "⌘ ᴠᴇʀsɪᴏɴ", value: data.version || "Unknown", inline: true }
       )
       .setThumbnail(players[0] ? getHead(players[0].name) : null)
