@@ -1,106 +1,116 @@
-const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
-const axios = require("axios");
-const express = require("express");
+import { Client, GatewayIntentBits, EmbedBuilder, SlashCommandBuilder, Routes } from "discord.js";
+import { REST } from "discord.js";
+import fetch from "node-fetch";
+import express from "express";
+import dotenv from "dotenv";
 
-// ================= EXPRESS (KEEP-ALIVE FOR RENDER)
+dotenv.config(); // 👈 LOAD ENV
+
+const TOKEN = process.env.BOT_TOKEN;
+const CLIENT_ID = process.env.CLIENT_ID;
+
+const SERVER_IP = "foxmckingdom.mcpc.ink";
+
+// ================= EXPRESS (Render keep alive)
 const app = express();
-const PORT = process.env.PORT || 3000;
+app.get("/", (req, res) => res.send("✅ Bot Running"));
+app.listen(process.env.PORT || 3000, () => console.log("🌐 Web server ready"));
 
-app.get("/", (req, res) => {
-  res.send("✅ Minecraft Bot Running on Render");
-});
-
-app.listen(PORT, () => {
-  console.log("Web server running on port " + PORT);
-});
-
-// ================= DISCORD BOT
+// ================= DISCORD CLIENT
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ]
+  intents: [GatewayIntentBits.Guilds]
 });
 
-const TOKEN = process.env.TOKEN;
-const SERVER = "foxmckingdom.mcpc.ink";
-const DEFAULT_SKIN_ID = "a30601e36d52e1dea9bf3f4eadccf7f00eec305b792702b8bd96fc8a439317fd";
-
-// ================= GET SERVER STATUS
-async function getStatus() {
+// ================= FETCH SERVER
+async function getData() {
   try {
-    const response = await axios.get(`https://api.mcsrvstat.us/2/${SERVER}`);
-    return response.data;
-  } catch (err) {
-    console.error("API Error:", err.message);
+    const res = await fetch(`https://api.mcsrvstat.us/2/${SERVER_IP}`);
+    return await res.json();
+  } catch {
     return null;
   }
 }
 
-// ================= 3D PLAYER HEAD LOGIC
-function getHead(name, playersCount) {
-  if (playersCount > 0 && name) {
-    // បើមានអ្នកលេង ប្រើ Crafthead ដើម្បី Support Java/Bedrock
-    return `https://crafthead.net/helm/${name}/64`;
+// ================= STATUS EMBED
+function createStatusEmbed(data) {
+  if (data && data.online) {
+    return new EmbedBuilder()
+      .setTitle("🦊 Foxmc Kingdom")
+      .setDescription("```fix\n🟢 ONLINE\n```")
+      .addFields(
+        { name: "👥 Players", value: `${data.players.online}/${data.players.max}`, inline: true },
+        { name: "🌐 IP", value: SERVER_IP, inline: true }
+      )
+      .setColor(0x2ecc71)
+      .setFooter({ text: "Updated: " + new Date().toLocaleTimeString() });
   } else {
-    // បើគ្មានអ្នកលេង ប្រើ Custom Texture ID ដែលអ្នកផ្ដល់ឱ្យ (បង្ហាញជា 3D Head)
-    return `https://visage.surgeplay.com/head/64/${DEFAULT_SKIN_ID}`;
+    return new EmbedBuilder()
+      .setTitle("🦊 Foxmc Kingdom")
+      .setDescription("```diff\n- OFFLINE\n```")
+      .setColor(0xe74c3c);
   }
 }
 
-// ================= BOT READY
-client.once("ready", () => {
-  console.log(`Logged in as ${client.user.tag}`);
-});
+// ================= LIST EMBED
+function createListEmbed(data) {
+  let desc = "";
 
-// ================= COMMAND !panel
-client.on("messageCreate", async (msg) => {
-  if (msg.author.bot) return;
+  if (data?.players?.list?.length > 0) {
+    desc = data.players.list.map(name => {
+      const head = `https://crafthead.net/helm/${name}/32`;
+      return `🧑 **${name}**\n${head}`;
+    }).join("\n\n");
+  } else {
+    desc = "❌ គ្មានអ្នកលេង";
+  }
 
-  if (msg.content === "!panel") {
-    await msg.channel.sendTyping();
+  return new EmbedBuilder()
+    .setTitle("👥 Player List")
+    .setDescription(desc.substring(0, 4000))
+    .setColor(0x3498db);
+}
 
-    const data = await getStatus();
+// ================= COMMANDS
+const commands = [
+  new SlashCommandBuilder().setName("status").setDescription("Show server status"),
+  new SlashCommandBuilder().setName("list").setDescription("Show player list"),
+  new SlashCommandBuilder().setName("support").setDescription("Support link"),
+  new SlashCommandBuilder().setName("store").setDescription("Store link")
+].map(cmd => cmd.toJSON());
 
-    // ❌ Server Offline
-    if (!data || !data.online) {
-      const offlineEmbed = new EmbedBuilder()
-        .setTitle("sᴇʀᴠᴇʀ ɪs ᴏғғʟɪɴᴇ!")
-        .setDescription("sᴇʀᴠᴇʀ ɪs ᴄᴜʀʀᴇɴᴛʟʏ ᴏғғʟɪɴᴇ ᴏʀ ᴜɴʀᴇᴀᴄʜᴀʙʟᴇ.")
-        .setThumbnail(`https://visage.surgeplay.com/head/64/${DEFAULT_SKIN_ID}`) // បង្ហាញក្បាលដដែលពេល Offline
-        .setColor("Red")
-        .setTimestamp();
+// ================= REGISTER COMMANDS
+const rest = new REST({ version: "10" }).setToken(TOKEN);
 
-      return msg.channel.send({ embeds: [offlineEmbed] });
-    }
+(async () => {
+  await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+  console.log("✅ Commands registered");
+})();
 
-    // 👥 Players Logic
-    const players = data.players?.list || [];
-    const list = players.length
-      ? players.map(p => `★ ${p}`).join("\n")
-      : "ɴᴏ ᴘʟᴀយᴇʀs ᴏɴʟɪɴᴇ";
+// ================= INTERACTION
+client.on("interactionCreate", async interaction => {
+  if (!interaction.isChatInputCommand()) return;
 
-    // 🎮 EMBED
-    const embed = new EmbedBuilder()
-      .setTitle("ғᴏxᴍᴄᴋɪɴɢᴅᴏᴍ ʟɪᴠᴇ ᴘᴀɴᴇʟ")
-      .setDescription("**ʟɪᴠᴇ ᴘʟᴀʏers ʟɪsᴛ:**\n" + (list.length > 1000 ? list.substring(0, 1000) + "..." : list))
-      .addFields(
-        { name: "♙ ᴏɴʟɪɴᴇ", value: `\`${data.players.online}/${data.players.max}\``, inline: true },
-        { name: "⌘ ᴠᴇʀsɪᴏɴ", value: `\`${data.version || "Unknown"}\``, inline: true },
-        { name: "❀ ɪᴘ", value: `\`${SERVER}\``, inline: false },
-        { name: "⊟ ᴘᴏʀᴛ", value: `\`${data.port || "25565"}\``, inline: true }
-      )
-      // កែសម្រួល Thumbnail តាមលក្ខខណ្ឌរបស់អ្នក
-      .setThumbnail(getHead(players[0], players.length))
-      .setColor("#5865F2")
-      .setFooter({ text: "ʀᴇǫᴜᴇsᴛᴇᴅ ᴘᴀɴᴇʟ • ғᴏxᴍᴄᴋɪɴɢᴅᴏᴍ ʙᴏᴛ" })
-      .setTimestamp();
+  const data = await getData();
 
-    msg.channel.send({ embeds: [embed] });
+  if (interaction.commandName === "status") {
+    return interaction.reply({ embeds: [createStatusEmbed(data)] });
+  }
+
+  if (interaction.commandName === "list") {
+    return interaction.reply({ embeds: [createListEmbed(data)] });
+  }
+
+  if (interaction.commandName === "support") {
+    return interaction.reply({ content: "🆘 https://t.me/firefoxmc_xd" });
+  }
+
+  if (interaction.commandName === "store") {
+    return interaction.reply({ content: "🛒 https://foxmcstatus.vercel.app" });
   }
 });
 
-// ================= LOGIN
+client.once("ready", () => {
+  console.log(`🤖 Logged in as ${client.user.tag}`);
+});
+
 client.login(TOKEN);
-      
