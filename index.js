@@ -1,10 +1,8 @@
-import { Client, GatewayIntentBits, EmbedBuilder, SlashCommandBuilder, Routes } from "discord.js";
-import { REST } from "discord.js";
-import fetch from "node-fetch";
+import { Client, GatewayIntentBits, EmbedBuilder, REST, Routes, SlashCommandBuilder } from "discord.js";
 import express from "express";
 import dotenv from "dotenv";
 
-dotenv.config(); // 👈 LOAD ENV
+dotenv.config();
 
 const TOKEN = process.env.BOT_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
@@ -13,16 +11,18 @@ const SERVER_IP = "foxmckingdom.mcpc.ink";
 
 // ================= EXPRESS (Render keep alive)
 const app = express();
-app.get("/", (req, res) => res.send("✅ Bot Running"));
-app.listen(process.env.PORT || 3000, () => console.log("🌐 Web server ready"));
+app.get("/", (req, res) => res.send("✅ Foxmc Bot Online"));
+app.listen(process.env.PORT || 3000, () => {
+  console.log("🌐 Server running");
+});
 
 // ================= DISCORD CLIENT
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
-// ================= FETCH SERVER
-async function getData() {
+// ================= FETCH MC SERVER
+async function getServer() {
   try {
     const res = await fetch(`https://api.mcsrvstat.us/2/${SERVER_IP}`);
     return await res.json();
@@ -31,84 +31,83 @@ async function getData() {
   }
 }
 
-// ================= STATUS EMBED
-function createStatusEmbed(data) {
-  if (data && data.online) {
+// ================= EMBED STATUS
+function statusEmbed(data) {
+  if (data?.online) {
     return new EmbedBuilder()
-      .setTitle("🦊 Foxmc Kingdom")
-      .setDescription("```fix\n🟢 ONLINE\n```")
+      .setTitle("🦊 Foxmc Kingdom Status")
+      .setDescription("```diff\n+ ONLINE\n```")
       .addFields(
         { name: "👥 Players", value: `${data.players.online}/${data.players.max}`, inline: true },
         { name: "🌐 IP", value: SERVER_IP, inline: true }
       )
-      .setColor(0x2ecc71)
-      .setFooter({ text: "Updated: " + new Date().toLocaleTimeString() });
+      .setColor(0x2ecc71);
   } else {
     return new EmbedBuilder()
-      .setTitle("🦊 Foxmc Kingdom")
+      .setTitle("🦊 Foxmc Kingdom Status")
       .setDescription("```diff\n- OFFLINE\n```")
       .setColor(0xe74c3c);
   }
 }
 
-// ================= LIST EMBED
-function createListEmbed(data) {
-  let desc = "";
+// ================= PLAYER LIST
+function listEmbed(data) {
+  let list = "❌ No players online";
 
   if (data?.players?.list?.length > 0) {
-    desc = data.players.list.map(name => {
+    list = data.players.list.map(name => {
       const head = `https://crafthead.net/helm/${name}/32`;
-      return `🧑 **${name}**\n${head}`;
+      return `🧑 ${name}\n${head}`;
     }).join("\n\n");
-  } else {
-    desc = "❌ គ្មានអ្នកលេង";
   }
 
   return new EmbedBuilder()
     .setTitle("👥 Player List")
-    .setDescription(desc.substring(0, 4000))
+    .setDescription(list.slice(0, 4000))
     .setColor(0x3498db);
 }
 
-// ================= COMMANDS
+// ================= SLASH COMMANDS
 const commands = [
-  new SlashCommandBuilder().setName("status").setDescription("Show server status"),
-  new SlashCommandBuilder().setName("list").setDescription("Show player list"),
+  new SlashCommandBuilder().setName("status").setDescription("Server status"),
+  new SlashCommandBuilder().setName("list").setDescription("Player list"),
   new SlashCommandBuilder().setName("support").setDescription("Support link"),
   new SlashCommandBuilder().setName("store").setDescription("Store link")
-].map(cmd => cmd.toJSON());
+].map(c => c.toJSON());
 
-// ================= REGISTER COMMANDS
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 (async () => {
-  await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-  console.log("✅ Commands registered");
+  await rest.put(Routes.applicationCommands(CLIENT_ID), {
+    body: commands
+  });
+  console.log("✅ Slash commands ready");
 })();
 
-// ================= INTERACTION
-client.on("interactionCreate", async interaction => {
+// ================= INTERACTIONS
+client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  const data = await getData();
+  const data = await getServer();
 
   if (interaction.commandName === "status") {
-    return interaction.reply({ embeds: [createStatusEmbed(data)] });
+    return interaction.reply({ embeds: [statusEmbed(data)] });
   }
 
   if (interaction.commandName === "list") {
-    return interaction.reply({ embeds: [createListEmbed(data)] });
+    return interaction.reply({ embeds: [listEmbed(data)] });
   }
 
   if (interaction.commandName === "support") {
-    return interaction.reply({ content: "🆘 https://t.me/firefoxmc_xd" });
+    return interaction.reply("🆘 https://t.me/firefoxmc_xd");
   }
 
   if (interaction.commandName === "store") {
-    return interaction.reply({ content: "🛒 https://foxmcstatus.vercel.app" });
+    return interaction.reply("🛒 https://foxmcstatus.vercel.app");
   }
 });
 
+// ================= READY
 client.once("ready", () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 });
